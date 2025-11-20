@@ -1,0 +1,85 @@
+// This is your Prisma schema file,
+// learn more about it in the docs: https://pris.ly/d/prisma-schema
+
+// Looking for ways to speed up your queries, or scale easily with your serverless or edge functions?
+// Try Prisma Accelerate: https://pris.ly/cli/accelerate-init
+
+generator client {
+  provider = "prisma-client"
+  output   = "../generated/prisma"
+  moduleFormat = "cjs"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+
+enum UserRole{
+  ADMINISTRATOR
+  USER
+  GUEST
+  @@map("role")
+}
+
+
+model User{
+  id String @id @default(uuid()) @db.Uuid
+  name String
+  email String @unique
+  phone String?  @unique
+  password String
+  role UserRole @default(GUEST) @map("role")
+  isGoogle Boolean @default(false) @map("is_google")
+  isVerified Boolean @default(false) @map("is_verified")
+  createdAt DateTime @default(now()) @map("created_at")
+  updatedAt DateTime @updatedAt @map("updated_at")
+  deletedAt DateTime? @map("deleted_at")
+  @@map("users")
+
+  Places Place[]
+  comments Review[]
+}
+
+
+model Place{
+  id String @id @default(uuid()) @db.Uuid
+  name String
+  slug String @unique
+  thumbnailUrl String? @map("thumbnail_url")
+  rating Float @default(0)
+  images Image[]
+  location String 
+  facilities String[]
+  contact String 
+  maps String
+  url String
+  createdById String?  @db.Uuid @map("created_by_id")
+  createdBy User? @relation(fields: [createdById], references: [id]) 
+  openHours Json @map("open_hours")
+  createdAt DateTime @default(now()) @map("created_at")
+  updatedAt DateTime @updatedAt @map("updated_at")
+  deletedAt DateTime? @map("deleted_at")
+  @@map("places")
+}   
+
+model Image {
+  id        String   @id @default(uuid())
+  url       String   
+  placeId   String @db.Uuid
+  place     Place    @relation(fields: [placeId], references: [id])
+  @@map("images")
+}
+
+model Review {
+  id    String  @db.Uuid @default(uuid())
+  rating  Float @default(0)
+  comment  String 
+  authorId  String @id @default(uuid()) @db.Uuid @map("author_id")
+  user User @relation(fields: [authorId], references: [id])
+  createdAt DateTime @default(now()) @map("created_at")
+  updatedAt DateTime @updatedAt @map("updated_at")
+  deletedAt DateTime? @map("deleted_at")
+  @@map("reviews")
+}
