@@ -8,9 +8,8 @@ import {
   MaxLength,
   MinLength,
 } from 'class-validator';
-import { Prisma } from 'generated/prisma/client';
 
-export class CreateUserDTO implements Prisma.UserCreateInput {
+export class CreateUserDTO {
   @IsNotEmpty({ message: 'Name cannot empty' })
   @IsString()
   @MinLength(3)
@@ -26,7 +25,7 @@ export class CreateUserDTO implements Prisma.UserCreateInput {
   @Length(10, 15, { message: 'Phone number at least 10 to 15 characters' })
   readonly phone?: string;
 
-  @IsNotEmpty()
+  @IsOptional()
   @IsString()
   @MinLength(6, { message: 'Password at least 6 characters' })
   @MaxLength(20)
@@ -34,5 +33,5 @@ export class CreateUserDTO implements Prisma.UserCreateInput {
     message:
       'Password at least contains one capitalize character and one number',
   })
-  readonly password: string;
+  readonly password?: string | null;
 }

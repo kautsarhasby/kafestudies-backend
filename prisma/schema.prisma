@@ -5,7 +5,7 @@
 // Try Prisma Accelerate: https://pris.ly/cli/accelerate-init
 
 generator client {
-  provider = "prisma-client"
+  provider = "prisma-client-js"
   output   = "../generated/prisma"
   moduleFormat = "cjs"
 }
@@ -15,7 +15,6 @@ datasource db {
   url      = env("DATABASE_URL")
 }
 
-
 enum UserRole{
   ADMINISTRATOR
   USER
@@ -23,15 +22,20 @@ enum UserRole{
   @@map("role")
 }
 
-
+enum AuthProvider{
+  GOOGLE
+  LOCAL
+  @@map("provider")
+}
 model User{
   id String @id @default(uuid()) @db.Uuid
   name String
   email String @unique
   phone String?  @unique
-  password String
+  password String? //null for non-local provider
   role UserRole @default(GUEST) @map("role")
-  isGoogle Boolean @default(false) @map("is_google")
+  provider AuthProvider @default(LOCAL)
+  providerId String? //null for local provider
   isVerified Boolean @default(false) @map("is_verified")
   createdAt DateTime @default(now()) @map("created_at")
   updatedAt DateTime @updatedAt @map("updated_at")

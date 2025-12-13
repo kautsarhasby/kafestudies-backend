@@ -1,8 +1,9 @@
-import { ISendMailOptions, MailerService } from '@nestjs-modules/mailer';
+import { MailerService } from '@nestjs-modules/mailer';
 import {
   BadRequestException,
   Inject,
   Injectable,
+  InternalServerErrorException,
   Logger,
 } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
@@ -25,9 +26,8 @@ export class MailService {
     @Inject(WINSTON_MODULE_PROVIDER) private logger: Logger,
   ) {
     this.frontendUrl =
-      process.env.NODE_ENV === 'development'
-        ? 'http://localhost:4000'
-        : 'https://lokerin-frontend.vercel.app';
+      process.env.NODE_ENV === 'development' ? 'http://localhost:4000' : '';
+    console.log(this.frontendUrl);
   }
 
   private generateVerifyToken(payload: { email: string }): string {
@@ -39,7 +39,7 @@ export class MailService {
 
   private dateFormatter(date: Date): string {
     const day = date.getDate();
-    const month = date.getMonth() + 1;
+    const month = date.toLocaleString('id-ID', { month: 'long' });
     const year = date.getFullYear();
     return `${day} ${month.toString().padStart(2, '0')}, ${year}`;
   }
@@ -66,12 +66,18 @@ export class MailService {
     const url = `${this.frontendUrl}/api/auth/verify?token=${token}`;
     const subject = 'Confirm your email';
     const template = this.getEmailConfirmationTemplate(info.name);
-
-    return await this.sendMail({
-      context: { ...template, name: info.name, url, subject },
-      to: info.email,
-      subject,
-    });
+    try {
+      await this.sendMail({
+        context: { ...template, name: info.name, url, subject },
+        to: info.email,
+        subject,
+      });
+    } catch (error) {
+      this.logger.error(error);
+      throw new InternalServerErrorException(
+        'Internal Error on sending Confirmation email',
+      );
+    }
   }
 
   async sendMail(params: {
@@ -80,28 +86,17 @@ export class MailService {
     context: Record<string, string>;
   }) {
     try {
-      const sendMailParams = {
+      await this.mailerService.sendMail({
         to: params.to,
         subject: params.subject,
         context: params.context,
-      };
+        template: 'confirmation-email',
+      });
 
-      const response = (await this.mailerService.sendMail(
-        sendMailParams,
-      )) as ISendMailOptions;
-      this.logger.log(
-        `Email sent successfully to recipients with the following parameters : ${JSON.stringify(
-          sendMailParams,
-        )}`,
-        response,
-      );
+      return true;
     } catch (error) {
-      this.logger.error(
-        `Error while sending mail with the following parameters : ${JSON.stringify(
-          params,
-        )}`,
-        error,
-      );
+      this.logger.error(error);
+      throw new InternalServerErrorException('Error while sending mail  ');
     }
   }
 

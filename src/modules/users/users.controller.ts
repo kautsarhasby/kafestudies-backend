@@ -10,7 +10,7 @@ import {
 } from '@nestjs/common';
 import { UsersService } from './users.service';
 import { User } from 'generated/prisma/client';
-import { CreateUserDTO } from './dto/create-user-dto';
+import { CreateUserDTO } from './dto/create-user.dto';
 import { QueryUserDTO } from './dto/query-user.dto';
 import { UpdateUserDTO } from './dto/update-user.dto';
 

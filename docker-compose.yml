@@ -1,0 +1,9 @@
+services:
+  db:
+    image: postgres
+    restart: always
+    environment:
+      - DATABASE_URL="postgresql://postgres:getrich0201@localhost:5432/kafestudies?schema=public"
+    container_name: kafestudies-postgres
+    volumes:
+      -

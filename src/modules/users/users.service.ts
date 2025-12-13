@@ -2,7 +2,8 @@ import { Injectable } from '@nestjs/common';
 import { PrismaService } from 'src/common/prisma/prisma.service';
 import { QueryUserDTO } from './dto/query-user.dto';
 import { Prisma, User } from 'generated/prisma/client';
-import { CreateUserDTO } from './dto/create-user-dto';
+import { CreateUserDTO } from './dto/create-user.dto';
+import { AuthProvider } from 'generated/prisma';
 
 @Injectable()
 export class UsersService {
@@ -56,9 +57,16 @@ export class UsersService {
     return user;
   }
 
-  async createUser(userData: CreateUserDTO) {
+  async createUser(dto: CreateUserDTO) {
     const user = await this.prismaService.user.create({
-      data: { ...userData },
+      data: {
+        name: dto.name,
+        email: dto.email,
+        phone: dto.phone ?? null,
+        password: dto.password ?? null,
+        provider: AuthProvider.LOCAL,
+        isVerified: false,
+      },
     });
     return user;
   }

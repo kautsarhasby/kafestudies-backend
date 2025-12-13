@@ -8,13 +8,17 @@ import { ConfigModule } from '@nestjs/config';
 import { PlacesModule } from './modules/places/places.module';
 import { WinstonModule } from 'nest-winston';
 import * as winston from 'winston';
+import { MailModule } from './common/mail/mail.module';
+import { ReviewModule } from './modules/reviews/reviews.module';
 @Module({
   imports: [
     ConfigModule.forRoot({ isGlobal: true }),
+    MailModule,
     UsersModule,
     AuthModule,
     PrismaModule,
     PlacesModule,
+    ReviewModule,
     WinstonModule.forRoot({
       transports: [
         new winston.transports.Console({

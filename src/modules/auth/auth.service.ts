@@ -1,5 +1,6 @@
 import {
   BadRequestException,
+  ForbiddenException,
   Inject,
   Injectable,
   InternalServerErrorException,
@@ -9,13 +10,14 @@ import {
 } from '@nestjs/common';
 import { JwtService } from '@nestjs/jwt';
 import { UsersService } from '../users/users.service';
-import { CreateUserDTO } from '../users/dto/create-user-dto';
 import argon2 from 'argon2';
 import { MailService } from 'src/common/mail/mail.service';
 import { WINSTON_MODULE_PROVIDER } from 'nest-winston';
 import { ConfigService } from '@nestjs/config';
 import { JWTPayload } from './strategy/access-token.strategy';
 import { Role } from '../users/enum/role.enum';
+import { GOOGLE_OAUTH_CLIENT } from './auth.module';
+import { OAuth2Client } from 'google-auth-library';
 
 export interface JwtTokenResponse {
   accessToken: string;
@@ -30,6 +32,7 @@ export class AuthService {
     private mailService: MailService,
     private configService: ConfigService,
     @Inject(WINSTON_MODULE_PROVIDER) private logger: LoggerService,
+    @Inject(GOOGLE_OAUTH_CLIENT) private readonly googleClient: OAuth2Client,
   ) {}
 
   async hashPassword(password: string) {
@@ -38,6 +41,10 @@ export class AuthService {
 
   async verifyPassword(hashed: string, password: string) {
     return await argon2.verify(hashed, password);
+  }
+
+  async decodeToken(token: string): Promise<JWTPayload> {
+    return await this.jwtService.decode(token);
   }
 
   async generateJwtTokens(payload: JWTPayload): Promise<JwtTokenResponse> {
@@ -52,6 +59,20 @@ export class AuthService {
       }),
     ]);
     return { accessToken, refreshToken };
+  }
+
+  async validateRefreshToken(token: string) {
+    console.log(this.configService.get<string>('JWT_REFRESH_SECRET'));
+    try {
+      const payload: JWTPayload = await this.jwtService.verifyAsync(token, {
+        secret: this.configService.get<string>('JWT_REFRESH_SECRET'),
+      });
+      const user = await this.usersService.findUserById(payload.sub);
+      return !!user;
+    } catch (error) {
+      this.logger.log(error);
+      return false;
+    }
   }
 
   async confirmedUseremail(email: string) {
@@ -80,9 +101,43 @@ export class AuthService {
     }
   }
 
+  async verifyGoogleToken(idToken: string) {
+    const ticket = await this.googleClient.verifyIdToken({
+      idToken,
+      audience: this.configService.get<string>('GOOGLE_CLIENT_ID'),
+    });
+    const payload = ticket.getPayload();
+    if (!payload) throw new UnauthorizedException('Invalid Google Token');
+    const { accessToken, refreshToken } = await this.generateJwtTokens({
+      email: payload.email!,
+      role: 'GUEST' as Role,
+      sub: payload.sub,
+      verified: payload.email_verified!,
+    });
+    return {
+      email: payload.email!,
+      name: payload.name!,
+      accessToken,
+      refreshToken,
+    };
+  }
+
+  async refreshToken(userId: string): Promise<{ accessToken: string }> {
+    const user = await this.usersService.findUserById(userId);
+    if (!user) throw new ForbiddenException('Access Denied');
+    const tokens = await this.generateJwtTokens({
+      email: user.email,
+      sub: user.id,
+      role: user.role as Role,
+      verified: user.isVerified,
+    });
+    return tokens;
+  }
+
   async signIn(email: string, password: string): Promise<JwtTokenResponse> {
     const user = await this.usersService.findUserByEmail(email);
     if (!user) throw new UnauthorizedException('User not exist!');
+    if (!user.password) throw new BadRequestException('Password required!');
     const compared = await this.verifyPassword(user.password, password);
     if (!compared) throw new UnauthorizedException('Password not valid!');
     const { accessToken, refreshToken } = await this.generateJwtTokens({
@@ -95,7 +150,7 @@ export class AuthService {
     return { accessToken, refreshToken };
   }
 
-  async signUp(data: CreateUserDTO) {
+  async signUp(data: { email: string; password: string; name: string }) {
     const { password } = data;
     const hashedPassword = await this.hashPassword(password);
     try {
