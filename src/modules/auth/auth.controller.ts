@@ -158,4 +158,45 @@ export class AuthController {
       data: user,
     };
   }
+
+  @Get('verify-reset')
+  async verifyResetPasswordThroughLink(
+    @Query('token') token: string,
+    @Res({ passthrough: true }) response: Response,
+  ) {
+    try {
+      const { accessToken, refreshToken } =
+        await this.authService.verifyTokenEmail({ token });
+
+      if (accessToken && refreshToken) {
+        const isProduction = process.env.NODE_ENV === 'production';
+        response.cookie(
+          'refreshToken',
+          refreshToken,
+          this.setCookieOptions(isProduction),
+        );
+      }
+      response.status(HttpStatus.ACCEPTED);
+    } catch (error) {
+      this.logger.error(error);
+      throw new BadRequestException('Something went error');
+    }
+  }
+
+  @Post('reset-password')
+  async resetPassword(
+    @Body() data: { email: string; password: string; id: string },
+  ) {
+    const user = await this.usersService.findUserByEmail(data.email);
+    if (!user) throw new BadRequestException('User not found');
+    try {
+      await this.usersService.updateUser({
+        id: data.id,
+        data: { password: data.password },
+      });
+    } catch (error) {
+      this.logger.error(error);
+      throw new BadRequestException('Failed to update user');
+    }
+  }
 }
