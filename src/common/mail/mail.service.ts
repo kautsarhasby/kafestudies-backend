@@ -26,7 +26,7 @@ export class MailService {
     @Inject(WINSTON_MODULE_PROVIDER) private logger: Logger,
   ) {
     this.frontendUrl =
-      process.env.NODE_ENV === 'development' ? 'http://localhost:4000' : '';
+      process.env.NODE_ENV === 'development' ? 'http://localhost:3000' : '';
     console.log(this.frontendUrl);
   }
 

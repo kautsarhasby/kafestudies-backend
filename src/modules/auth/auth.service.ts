@@ -16,8 +16,8 @@ import { WINSTON_MODULE_PROVIDER } from 'nest-winston';
 import { ConfigService } from '@nestjs/config';
 import { JWTPayload } from './strategy/access-token.strategy';
 import { Role } from '../users/enum/role.enum';
-import { GOOGLE_OAUTH_CLIENT } from './auth.module';
 import { OAuth2Client } from 'google-auth-library';
+import { GOOGLE_OAUTH_CLIENT } from './external-module/google-oauth.module';
 
 export interface JwtTokenResponse {
   accessToken: string;
@@ -32,7 +32,7 @@ export class AuthService {
     private mailService: MailService,
     private configService: ConfigService,
     @Inject(WINSTON_MODULE_PROVIDER) private logger: LoggerService,
-    @Inject(GOOGLE_OAUTH_CLIENT) private readonly googleClient: OAuth2Client,
+    @Inject(GOOGLE_OAUTH_CLIENT) private googleClient: OAuth2Client,
   ) {}
 
   async hashPassword(password: string) {
