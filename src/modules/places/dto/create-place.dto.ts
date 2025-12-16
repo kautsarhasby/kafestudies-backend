@@ -22,7 +22,7 @@ export class CreatePlacesDTO implements Prisma.PlaceCreateInput {
 
   @IsNotEmpty()
   @IsString()
-  location: string;
+  city: string;
 
   @IsNotEmpty()
   @IsString()

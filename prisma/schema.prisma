@@ -54,7 +54,7 @@ model Place{
   thumbnailUrl String? @map("thumbnail_url")
   rating Float @default(0)
   images Image[]
-  location String 
+  city String 
   facilities String[]
   contact String 
   maps String

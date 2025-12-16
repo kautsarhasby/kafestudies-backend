@@ -23,7 +23,7 @@ async function bootstrap() {
       'X-Requested-With',
       'Origin',
     ],
-    credentials: true,
+    credentials: false,
   });
   app.use(cookieParser());
 

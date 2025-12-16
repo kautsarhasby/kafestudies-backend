@@ -36,25 +36,16 @@ export class PlacesController {
     @Query() query: QueryPlaceDTO,
   ) {
     try {
-      const data = await this.placesService.findAllPlaces(query);
-      response.status(HttpStatus.FOUND);
-      return {
-        data,
-      };
+      return await this.placesService.findAllPlaces(query);
     } catch (error: unknown) {
       const e = error as Error;
       throw new BadRequestException(e.message);
     }
   }
-
   @Post()
-  async addPlace(
-    @Body() data: CreatePlacesDTO,
-    @Res({ passthrough: true }) response: Response,
-  ) {
+  async addPlace(@Body() data: CreatePlacesDTO) {
     const { success, place } = await this.placesService.create(data);
     if (success == false) throw new ConflictException('Place already exist!');
-    response.status(HttpStatus.CREATED);
     return {
       place,
       message: 'Success created place',
@@ -62,14 +53,9 @@ export class PlacesController {
   }
 
   @Patch(':id')
-  async updatePlace(
-    @Param('id') id: string,
-    @Body() data: UpdatePlaceDTO,
-    @Res({ passthrough: true }) response: Response,
-  ) {
+  async updatePlace(@Param('id') id: string, @Body() data: UpdatePlaceDTO) {
     try {
       const place = await this.placesService.update({ id, data });
-      response.status(HttpStatus.OK);
       return {
         place,
         message: 'Success',

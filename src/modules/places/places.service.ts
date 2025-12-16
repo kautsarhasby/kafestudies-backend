@@ -15,10 +15,7 @@ export class PlacesService {
   }
 
   async findAllPlaces(query: QueryPlaceDTO) {
-    const limit = +(query.limit || 10);
-    const page = +(query.page || 1);
-    const skip = limit * (page - 1);
-    const take = limit;
+    const take = +(query.limit ?? 10);
     const where: Prisma.PlaceWhereInput = {
       ...(query.name && {
         name: { contains: query.name, mode: 'insensitive' },
@@ -27,17 +24,14 @@ export class PlacesService {
 
     const places = await this.prismaService.place.findMany({
       where,
-      skip,
+      cursor: query.cursor ? { id: query.cursor } : undefined,
+      skip: query.cursor ? 1 : 0,
       take,
       orderBy: { createdAt: 'desc' },
     });
-    const total = await this.prismaService.place.count({ where });
-
     return {
       places,
-      total,
-      limit,
-      page,
+      nextCursor: places.at(-1)?.id ?? null,
     };
   }
 

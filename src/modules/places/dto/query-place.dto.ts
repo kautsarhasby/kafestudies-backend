@@ -8,5 +8,8 @@ export class QueryPlaceDTO {
   page?: string;
 
   @IsOptional()
+  cursor?: string;
+
+  @IsOptional()
   limit?: string;
 }
