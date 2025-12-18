@@ -51,7 +51,7 @@ model Place{
   id String @id @default(uuid()) @db.Uuid
   name String
   slug String @unique
-  thumbnailUrl String? @map("thumbnail_url")
+  thumbnail String? @map("thumbnail")
   rating Float @default(0)
   images Image[]
   city String 
@@ -61,7 +61,7 @@ model Place{
   url String
   createdById String?  @db.Uuid @map("created_by_id")
   createdBy User? @relation(fields: [createdById], references: [id]) 
-  openHours Json @map("open_hours")
+  workHours Json @map("work_hours")
   createdAt DateTime @default(now()) @map("created_at")
   updatedAt DateTime @updatedAt @map("updated_at")
   deletedAt DateTime? @map("deleted_at")

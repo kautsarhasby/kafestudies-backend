@@ -14,11 +14,11 @@ export class CreatePlacesDTO implements Prisma.PlaceCreateInput {
   slug: string;
 
   @IsNotEmpty()
-  openHours: library.InputJsonValue;
+  workHours: library.InputJsonValue;
 
   @IsOptional()
   @IsString()
-  thumbnailUrl: string;
+  thumbnail: string;
 
   @IsNotEmpty()
   @IsString()
