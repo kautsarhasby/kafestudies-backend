@@ -1,14 +1,19 @@
 import { PrismaService } from 'src/common/prisma/prisma.service';
 import { CreatePlacesDTO } from './dto/create-place.dto';
 import { UpdatePlaceDTO } from './dto/update-place.dto';
-import { Injectable } from '@nestjs/common';
+import { BadRequestException, Injectable } from '@nestjs/common';
 import { QueryPlaceDTO } from './dto/query-place.dto';
-import { Prisma } from 'generated/prisma/client';
+import { Prisma, Image } from 'generated/prisma/client';
 import slugify from 'slugify';
+import { CloudinaryService } from '../cloudinary/cloudinary.service';
+import { UploadApiResponse } from 'cloudinary';
 
 @Injectable()
 export class PlacesService {
-  constructor(private prismaService: PrismaService) {}
+  constructor(
+    private prismaService: PrismaService,
+    private cloudinaryService: CloudinaryService,
+  ) {}
 
   private slugPlace(text: string) {
     return slugify(text);
@@ -80,5 +85,98 @@ export class PlacesService {
     });
 
     return place;
+  }
+
+  // for retrieve public id thumbnail from place
+  async getThumbnailPublicId(id: string): Promise<string | null> {
+    const place = await this.prismaService.place.findUnique({
+      where: { id },
+    });
+    return place?.publicId ?? null;
+  }
+
+  // for retrieve public id gallery from place
+  async getGalleryPublicId(id: string): Promise<Image[] | null> {
+    const place = await this.prismaService.place.findUnique({
+      where: { id },
+      include: { gallery: true },
+    });
+
+    return place?.gallery ?? null;
+  }
+
+  // for upload thumbnail
+  async uploadThumbnail(id: string, file: Express.Multer.File) {
+    const { secure_url, public_id } = (await this.cloudinaryService.uploadFile({
+      file,
+      folder: 'kafestudies/thumbnail',
+    })) as UploadApiResponse;
+
+    return await this.prismaService.place.update({
+      where: { id },
+      data: { thumbnail: secure_url, publicId: public_id },
+    });
+  }
+
+  // for update thumbnail
+  async updateThumbnail(id: string, file: Express.Multer.File) {
+    const existedPublicId = await this.getThumbnailPublicId(id);
+    if (!existedPublicId)
+      throw new BadRequestException('Cannot found public_id');
+    const { secure_url, public_id } = (await this.cloudinaryService.uploadFile({
+      file,
+      folder: 'kafestudies/thumbnail',
+      public_id: existedPublicId,
+    })) as UploadApiResponse;
+
+    return await this.prismaService.place.update({
+      where: { id },
+      data: { thumbnail: secure_url, publicId: public_id },
+    });
+  }
+
+  // for upload gallery (multiple images)
+  async uploadGallery(id: string, files: Express.Multer.File[]) {
+    const uploads = await Promise.all(
+      files.map((file) =>
+        this.cloudinaryService.uploadFile({
+          file,
+          folder: 'kafestudies/gallery',
+        }),
+      ),
+    );
+
+    return await this.prismaService.image.createMany({
+      data: uploads.map((u: UploadApiResponse) => ({
+        placeId: id,
+        url: u.secure_url,
+        publicId: u.public_id,
+      })),
+    });
+  }
+
+  // for update gallery (multiple images)
+  async updateGallery(id: string, files: Express.Multer.File[]) {
+    const existedPublicId = await this.getGalleryPublicId(id);
+    if (!existedPublicId)
+      throw new BadRequestException('Cannot found public_id');
+    const uploads = await Promise.all(
+      files.map((file, i) =>
+        this.cloudinaryService.uploadFile({
+          file,
+          folder: 'kafestudies/gallery',
+          public_id: existedPublicId[i].publicId!,
+        }),
+      ),
+    );
+
+    return await Promise.all(
+      uploads.map((u: UploadApiResponse, i) =>
+        this.prismaService.image.update({
+          where: { id: existedPublicId[i].id },
+          data: { url: u.secure_url, publicId: u.public_id },
+        }),
+      ),
+    );
   }
 }

@@ -20,6 +20,9 @@ export class CreatePlacesDTO implements Prisma.PlaceCreateInput {
   @IsString()
   thumbnail: string;
 
+  @IsString()
+  publicId?: string | null | undefined;
+
   @IsNotEmpty()
   @IsString()
   city: string;

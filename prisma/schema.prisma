@@ -52,8 +52,9 @@ model Place{
   name String
   slug String @unique
   thumbnail String? @map("thumbnail")
+  publicId String? @map("public_id_image")
   rating Float @default(0)
-  images Image[]
+  gallery Image[] 
   city String 
   facilities String[]
   contact String 
@@ -70,7 +71,8 @@ model Place{
 
 model Image {
   id        String   @id @default(uuid())
-  url       String   
+  url       String?   
+  publicId  String? @map("public_id_image")
   placeId   String @db.Uuid
   place     Place    @relation(fields: [placeId], references: [id])
   @@map("images")
